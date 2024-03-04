@@ -20,7 +20,7 @@ void loop()
 {
   flexPos = analogRead(flexPin);
   //Serial.println(flexPos);
-  flexPos = map(flexPos, LowerThresh, UpperThresh, 0, 2);
+  flexPos = map(flexPos, LowerThresh, UpperThresh, 0, 2); // map the flex sensor output to be 0, 1, or 2
   Serial.println(flexPos);
   
   if (flexPos == 0){ // return servo to beginning
