@@ -1,5 +1,3 @@
-// C++ code
-//
 #include <Servo.h>
 const int flexPin = A2;
 const int Servo1Pin = 13;
@@ -25,24 +23,14 @@ void loop()
   flexPos = map(flexPos, LowerThresh, UpperThresh, 0, 2);
   Serial.println(flexPos);
   
-  // If flexpos == 0
-  // returnbackto()
-  if (flexPos == 0){
+  if (flexPos == 0){ // return servo to beginning
     servo1Pos = max(servo1Pos - 15, 0);
     myservo1.write(servo1Pos);
-  } else if (flexPos == 2){
+  } else if (flexPos == 2){ // start rotating servo until 180deg
     servo1Pos = min(servo1Pos + 15, 180);
     myservo1.write(servo1Pos);
-    
-  } else {
+  } else { // stay at current position
     myservo1.write(servo1Pos);
   }
   delay(15);
-
- 
-  // else if flexpos == 1
-  // continue
-  
-  // else if flexpos == 2
-  // actuate()
 }
