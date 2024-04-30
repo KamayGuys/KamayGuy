@@ -16,6 +16,9 @@ const int SHOULDER_PIN = 11;
 const int UPPER = 900;
 const int LOWER = 424;
 
+const int STEP = 15;
+const int DELAY = 15;
+
 int claw_flex_val, elbow_flex_val, shoulder_flex_val;
 int claw_mode, elbow_mode, shoulder_mode;
 int claw_servo_pos, elbow_servo_pos, shoulder_servo_pos = 0;
@@ -37,35 +40,32 @@ void loop() {
   shoulder_mode = map(shoulder_flex_val, LOWER, UPPER, 0, 2);
   // Serial.println(claw_mode);
 
-  if (claw_flex_val == REVERT) { // return servo to beginning
-    claw_servo_pos = max(claw_servo_pos - 15, 0);
+  if (claw_flex_val) { // start rotating servo until 180deg
+    claw_servo_pos = min(claw_servo_pos + STEP, 180);
     claw_servo.write(claw_servo_pos);
-  } else if (claw_flex_val == ROTATE) { // start rotating servo until 180deg
-    claw_servo_pos = min(claw_servo_pos + 15, 180);
-    claw_servo.write(claw_servo_pos);
-  } else { // stay at current position
-    claw_servo.write(claw_servo_pos);
+  } else { // return servo to beginning
+    claw_servo.write(claw_servo_pos - STEP, 0);
   }
 
   if (elbow_flex_val == REVERT) { // return servo to beginning
-    elbow_servo_pos = max(elbow_servo_pos - 15, 0);
+    elbow_servo_pos = max(elbow_servo_pos - STEP, 0);
     elbow_servo.write(elbow_servo_pos);
   } else if (elbow_flex_val == ROTATE) { // start rotating servo until 180deg
-    elbow_servo_pos = min(elbow_servo_pos + 15, 180);
+    elbow_servo_pos = min(elbow_servo_pos + STEP, 180);
     elbow_servo.write(elbow_servo_pos);
   } else { // stay at current position
     elbow_servo.write(elbow_servo_pos);
   }
 
   if (shoulder_flex_val == REVERT) { // return servo to beginning
-    shoulder_servo_pos = max(shoulder_servo_pos - 15, 0);
+    shoulder_servo_pos = max(shoulder_servo_pos - STEP, 0);
     shoulder_servo.write(shoulder_servo_pos);
   } else if (shoulder_flex_val == ROTATE) { // start rotating servo until 180deg
-    shoulder_servo_pos = min(shoulder_servo_pos + 15, 180);
+    shoulder_servo_pos = min(shoulder_servo_pos + STEP, 180);
     shoulder_servo.write(shoulder_servo_pos);
   } else { // stay at current position
     shoulder_servo.write(shoulder_servo_pos);
   }
 
-  delay(15);
+  delay(DELAY);
 }
