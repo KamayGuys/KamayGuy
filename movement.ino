@@ -1,5 +1,4 @@
 // C++ code
-//
 
 int sensorPin1 = A0;
 int sensorPin2 = A1;

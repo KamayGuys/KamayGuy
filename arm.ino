@@ -1,36 +1,71 @@
 #include <Servo.h>
-const int flexPin = A2;
-const int Servo1Pin = 13;
-const int Servo2Pin = 12;
-const int Servo3pin = 11;
-const int UpperThresh = 900;
-const int LowerThresh = 424;
 
-int flexPos;
-int servo1Pos = 0;
-Servo myservo1;
+#define REVERT 0
+#define STAY 1
+#define ROTATE 2
 
-void setup()
-{
-  myservo1.attach(Servo1Pin);
+const int CLAW_FLEX_PIN = A0;
+const int ELBOW_FLEX_PIN = A1;
+const int SHOULDER_FLEX_PIN = A2;
+
+const int CLAW_PIN = 13;
+const int ELBOW_PIN = 12;
+const int SHOULDER_PIN = 11;
+
+// TODO: set thresholds for each servo
+const int UPPER = 900;
+const int LOWER = 424;
+
+int claw_flex_val, elbow_flex_val, shoulder_flex_val;
+int claw_mode, elbow_mode, shoulder_mode;
+int claw_servo_pos, elbow_servo_pos, shoulder_servo_pos = 0;
+
+Servo claw_servo, elbow_servo, shoulder_servo;
+
+void setup() {
+  claw_servo.attach(CLAW_PIN);
   Serial.begin(9600);
 }
 
-void loop()
-{
-  flexPos = analogRead(flexPin);
-  //Serial.println(flexPos);
-  flexPos = map(flexPos, LowerThresh, UpperThresh, 0, 2); // map the flex sensor output to be 0, 1, or 2
-  Serial.println(flexPos);
-  
-  if (flexPos == 0){ // return servo to beginning
-    servo1Pos = max(servo1Pos - 15, 0);
-    myservo1.write(servo1Pos);
-  } else if (flexPos == 2){ // start rotating servo until 180deg
-    servo1Pos = min(servo1Pos + 15, 180);
-    myservo1.write(servo1Pos);
+void loop() {
+  claw_flex_val = analogRead(CLAW_FLEX_PIN);
+  elbow_flex_val = analogRead(ELBOW_FLEX_PIN);
+  shoulder_flex_val = analogRead(SHOULDER_FLEX_PIN);
+  // Serial.println(claw_flex_val);
+  claw_mode = map(claw_flex_val, LOWER, UPPER, 0, 1);
+  elbow_mode = map(elbow_flex_val, LOWER, UPPER, 0, 2);
+  shoulder_mode = map(shoulder_flex_val, LOWER, UPPER, 0, 2);
+  // Serial.println(claw_mode);
+
+  if (claw_flex_val == REVERT) { // return servo to beginning
+    claw_servo_pos = max(claw_servo_pos - 15, 0);
+    claw_servo.write(claw_servo_pos);
+  } else if (claw_flex_val == ROTATE) { // start rotating servo until 180deg
+    claw_servo_pos = min(claw_servo_pos + 15, 180);
+    claw_servo.write(claw_servo_pos);
   } else { // stay at current position
-    myservo1.write(servo1Pos);
+    claw_servo.write(claw_servo_pos);
   }
+
+  if (elbow_flex_val == REVERT) { // return servo to beginning
+    elbow_servo_pos = max(elbow_servo_pos - 15, 0);
+    elbow_servo.write(elbow_servo_pos);
+  } else if (elbow_flex_val == ROTATE) { // start rotating servo until 180deg
+    elbow_servo_pos = min(elbow_servo_pos + 15, 180);
+    elbow_servo.write(elbow_servo_pos);
+  } else { // stay at current position
+    elbow_servo.write(elbow_servo_pos);
+  }
+
+  if (shoulder_flex_val == REVERT) { // return servo to beginning
+    shoulder_servo_pos = max(shoulder_servo_pos - 15, 0);
+    shoulder_servo.write(shoulder_servo_pos);
+  } else if (shoulder_flex_val == ROTATE) { // start rotating servo until 180deg
+    shoulder_servo_pos = min(shoulder_servo_pos + 15, 180);
+    shoulder_servo.write(shoulder_servo_pos);
+  } else { // stay at current position
+    shoulder_servo.write(shoulder_servo_pos);
+  }
+
   delay(15);
 }
