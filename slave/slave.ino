@@ -1,6 +1,13 @@
 // slave.ino
 
-// board: mega2560
+// Code for the rover and arm microcontroller that receives commands from master
+
+// hardware requirements:
+
+// - a mega 2560
+// - hc-05 bluetooth module
+// - two drive motors
+// - three servos
 
 #include "ServoJoint.h"
 
@@ -105,11 +112,8 @@ void setup() {
   shoulder.attach();
 }
 
-// Message format:
-// <claw_mode>
-// <elbow_mode>
-// <shoulder_mode>
-// <rover_mode>
+// Receive a 4-byte message from the master for the arm modes and rover mode:
+// [claw mode] [elbow mode] [shoulder mode] [rover mode]
 
 void loop() {
   if (Serial.available() >= 4) { // Ensure four bytes are available
