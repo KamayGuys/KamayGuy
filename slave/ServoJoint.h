@@ -14,8 +14,8 @@ public:
 
 private:
   int pin;
-  int min;
-  int max;
+  int minAngle;
+  int maxAngle;
   Servo servo;
 };
 
