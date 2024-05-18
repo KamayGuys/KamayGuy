@@ -1,28 +1,28 @@
 // slave.ino
 
-// Code for the rover and arm microcontroller that receives commands from master
+// Code for the microcontroller that receives commands from master. Should move
+// wheels and arm joints
 
 // hardware requirements:
 
 // - a mega 2560
-// - hc-05 bluetooth module
+// - 2 hc-05 bluetooth modules
 // - two drive motors
 // - three servos
 
 #include "ServoJoint.h"
 
-#define CLAW_PIN 13
-#define ELBOW_PIN 12
+#define CLAW_PIN 9
+#define ELBOW_PIN 10
 #define SHOULDER_PIN 11
 
-#define LEFT_FORWARD_PIN 10
-#define LEFT_BACKWARD_PIN 9
-#define RIGHT_FORWARD_PIN 8
-#define RIGHT_BACKWARD_PIN 7
+#define REVERT 2
+#define STAY 1
+#define ROTATE 0
 
-ServoJoint claw(CLAW_PIN, 0, 180);
-ServoJoint elbow(ELBOW_PIN, 0, 180);
-ServoJoint shoulder(SHOULDER_PIN, 0, 180);
+ServoJoint claw(CLAW_PIN, 20, 90);
+ServoJoint elbow(ELBOW_PIN, 20, 180);
+ServoJoint shoulder(SHOULDER_PIN, 20, 90);
 
 // ### Handle the mode of the servo
 //
@@ -31,12 +31,12 @@ ServoJoint shoulder(SHOULDER_PIN, 0, 180);
 // `2`: rotate to 180
 //
 void handleServo(int mode, ServoJoint &servo) {
-  if (mode == 0)
+  if (mode == REVERT)
     servo.setAngle(0);
-  else if (mode == 1)
+  else if (mode == STAY)
     servo.setAngle(servo.getAngle());
-  else if (mode == 2)
-    servo.setAngle(180);
+  else if (mode == ROTATE)
+    servo.setAngle(270);
 }
 
 // ### Handle the mode and direction of the rover
@@ -50,41 +50,65 @@ void handleServo(int mode, ServoJoint &servo) {
 //
 void handleRover(int mode) {
   auto stop = []() {
-    digitalWrite(LEFT_FORWARD_PIN, LOW);
-    digitalWrite(LEFT_BACKWARD_PIN, LOW);
-    digitalWrite(RIGHT_FORWARD_PIN, LOW);
-    digitalWrite(RIGHT_BACKWARD_PIN, LOW);
+    Serial.println("Stop");
+    digitalWrite(13, LOW);
+    digitalWrite(12, LOW);
+    digitalWrite(8, LOW);
+    digitalWrite(7, LOW);
+    digitalWrite(6, LOW);
+    digitalWrite(5, LOW);
+    digitalWrite(3, LOW);
+    digitalWrite(4, LOW);
   };
 
   auto forward = []() {
-    digitalWrite(LEFT_FORWARD_PIN, HIGH);
-    digitalWrite(LEFT_BACKWARD_PIN, LOW);
-    digitalWrite(RIGHT_FORWARD_PIN, HIGH);
-    digitalWrite(RIGHT_BACKWARD_PIN, LOW);
+    Serial.println("Forward");
+    digitalWrite(12, HIGH);
+    digitalWrite(13, LOW);
+    digitalWrite(8, HIGH);
+    digitalWrite(7, LOW);
+    digitalWrite(6, HIGH);
+    digitalWrite(5, LOW);
+    digitalWrite(4, HIGH);
+    digitalWrite(3, LOW);
   };
 
   auto backward = []() {
-    digitalWrite(LEFT_FORWARD_PIN, LOW);
-    digitalWrite(LEFT_BACKWARD_PIN, HIGH);
-    digitalWrite(RIGHT_FORWARD_PIN, LOW);
-    digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
+    Serial.println("Backward");
+    digitalWrite(12, LOW);
+    digitalWrite(13, HIGH);
+    digitalWrite(8, LOW);
+    digitalWrite(7, HIGH);
+    digitalWrite(6, LOW);
+    digitalWrite(5, HIGH);
+    digitalWrite(4, LOW);
+    digitalWrite(3, HIGH);
   };
 
   auto turnLeft = []() {
-    digitalWrite(LEFT_FORWARD_PIN, LOW);
-    digitalWrite(LEFT_BACKWARD_PIN, HIGH);
-    digitalWrite(RIGHT_FORWARD_PIN, HIGH);
-    digitalWrite(RIGHT_BACKWARD_PIN, LOW);
+    Serial.println("Left ");
+    digitalWrite(13, LOW);
+    digitalWrite(12, HIGH);
+    digitalWrite(8, HIGH);
+    digitalWrite(7, LOW);
+    digitalWrite(6, LOW);
+    digitalWrite(5, HIGH);
+    digitalWrite(3, HIGH);
+    digitalWrite(4, LOW);
   };
 
   auto turnRight = []() {
-    digitalWrite(LEFT_FORWARD_PIN, HIGH);
-    digitalWrite(LEFT_BACKWARD_PIN, LOW);
-    digitalWrite(RIGHT_FORWARD_PIN, LOW);
-    digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
+    Serial.println("Right ");
+    digitalWrite(13, HIGH);
+    digitalWrite(12, LOW);
+    digitalWrite(8, LOW);
+    digitalWrite(7, HIGH);
+    digitalWrite(6, HIGH);
+    digitalWrite(5, LOW);
+    digitalWrite(3, LOW);
+    digitalWrite(4, HIGH);
   };
 
-  // TODO: what if we want to turn left and move forward at the same time?
   if (mode == 0)
     stop();
   else if (mode == 1)
@@ -99,18 +123,39 @@ void handleRover(int mode) {
 
 void setup() {
   Serial.begin(38400);
+  Serial.println("version 0.7.0");
 
-  // Set wheel pins
-  pinMode(LEFT_FORWARD_PIN, OUTPUT);
-  pinMode(LEFT_BACKWARD_PIN, OUTPUT);
-  pinMode(RIGHT_FORWARD_PIN, OUTPUT);
-  pinMode(RIGHT_BACKWARD_PIN, OUTPUT);
+  // motor pins
+  pinMode(13, OUTPUT);
+  pinMode(12, OUTPUT);
+  pinMode(8, OUTPUT);
+  pinMode(7, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(3, OUTPUT);
 
-  // Attach servos
   claw.attach();
   elbow.attach();
   shoulder.attach();
+
+  claw.setAngle(20);
+  elbow.setAngle(20);
+  shoulder.setAngle(20);
 }
+
+auto moveArm = []() {
+  Serial.println("elbow flex");
+  handleServo(2, elbow);
+  Serial.println("shoulder flex");
+  handleServo(2, shoulder);
+  delay(2000);
+  Serial.println("elbow down");
+  handleServo(0, elbow);
+  Serial.println("shoulder down");
+  handleServo(0, shoulder);
+  delay(2000);
+};
 
 // Receive a 4-byte message from the master for the arm modes and rover mode:
 // [claw mode] [elbow mode] [shoulder mode] [rover mode]
@@ -122,4 +167,5 @@ void loop() {
     handleServo(Serial.read(), shoulder);
     handleRover(Serial.read());
   }
+  // moveArm();
 }
