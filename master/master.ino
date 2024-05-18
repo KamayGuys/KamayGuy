@@ -4,45 +4,80 @@
 
 // hardware requirements:
 
-// - a mega 2560
+// - arduino mega 2560
 // - hc-05 bluetooth module
-// - 7 flex sensors
+// - 6 flex sensors
 
-#define LOWER 424
-#define UPPER 900
+#define LOWER 0
+#define UPPER 1023
 #define DELAY_MS 100
 
 // arm flex pins
-const int FLEX_PIN_CLAW = A0;
-const int FLEX_PIN_ELBOW = A1;
-const int FLEX_PIN_SHOULDER = A2;
+const int LEFT_MIDDLE = A0;
+const int LEFT_INDEX = A1;
+const int LEFT_THUMB = A2;
 
 // rover flex pins
-const int FORWARD_PIN = A3;
-const int BACKWARD_PIN = A4;
-const int LEFT_PIN = A5;
-const int RIGHT_PIN = A6;
+const int RIGHT_THUMB = A3;
+const int RIGHT_INDEX = A4;
+const int RIGHT_MIDDLE = A5;
+// const int RIGHT_PIN = A6;
 
 void setup() { Serial.begin(38400); }
 
+int calcDirection(bool forward, bool backward, bool left, bool right) {
+  if (backward)
+    return 2;
+  else if (left)
+    return 3;
+  else if (right)
+    return 4;
+  else if (forward)
+    return 1;
+  else
+    return 0;
+}
+
 // Send a 4-byte message to the slave for the arm modes and rover mode:
-// [claw mode] [elbow mode] [shoulder mode] [rover mode]
-
+// ### `[claw mode] [elbow mode] [shoulder mode] [rover mode]`
 void loop() {
-  // Send arm modes as 0, 1, or 2
-  Serial.write(map(analogRead(FLEX_PIN_CLAW), LOWER, UPPER, 0, 2));
-  Serial.write(map(analogRead(FLEX_PIN_ELBOW), LOWER, UPPER, 0, 2));
-  Serial.write(map(analogRead(FLEX_PIN_SHOULDER), LOWER, UPPER, 0, 2));
+  const leftMiddle = analogRead(LEFT_MIDDLE);
+  const leftIndex = analogRead(LEFT_INDEX);
+  const leftThumb = analogRead(LEFT_THUMB);
 
-  // Read rover flex sensors
-  int isForward = map(analogRead(FORWARD_PIN), LOWER, UPPER, 0, 1);
-  int isBackward = map(analogRead(BACKWARD_PIN), LOWER, UPPER, 0, 1);
-  int isLeft = map(analogRead(LEFT_PIN), LOWER, UPPER, 0, 1);
-  int isRight = map(analogRead(RIGHT_PIN), LOWER, UPPER, 0, 1);
+  const rightMiddle = analogRead(RIGHT_MIDDLE);
+  const rightIndex = analogRead(RIGHT_INDEX);
+  const rightThumb = analogRead(RIGHT_THUMB);
 
-  // TODO: what if we want to turn left and move forward at the same time?
-  // Send rover modes as 1, 2, 3, 4, or 0
-  Serial.write(isForward ? 1 : isBackward ? 2 : isLeft ? 3 : isRight ? 4 : 0);
+  const shoulderMode = map(rightMiddle, LOWER, UPPER, 2, 0);
+  const elbowMode = map(rightIndex, LOWER, UPPER, 2, 0);
+  const clawMode = map(rightThumb, LOWER, UPPER, 2, 0);
 
-  delay(DELAY_MS); // Slight delay to manage timing and prevent buffer overflow
+  Serial.print("middle:");
+  Serial.print(leftMiddle);
+  Serial.print("\tindex:");
+  Serial.print(leftIndex);
+  Serial.print("\tthumb:");
+  Serial.println(leftThumb);
+
+  Serial.print("-RIGHT VALUES-");
+  Serial.print("middle:");
+  Serial.print(rightMiddle);
+  Serial.print("\tindex:");
+  Serial.print(rightIndex);
+  Serial.print("\tthumb:");
+  Serial.println(rightThumb);
+
+  int forward = map(leftIndex, LOWER, UPPER, 1, 0);
+  int left = map(leftMiddle, LOWER, UPPER, 1, 0);
+  int right = map(leftThumb, LOWER, UPPER, 1, 0);
+  int backward = left && right;
+  int roverMode = calcDirection(forward, backward, left, right);
+
+  Serial.write(clawMode);
+  Serial.write(elbowMode);
+  Serial.write(shoulderMode);
+  Serial.write(roverMode);
+
+  delay(DELAY_MS); // delay to prevent buffer overflow
 }

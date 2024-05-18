@@ -6,7 +6,7 @@
 // hardware requirements:
 
 // - arduino mega 2560
-// - 2 hc-05 bluetooth modules
+// - hc-05 bluetooth module
 // - four drive motors
 // - three servos
 
@@ -16,9 +16,9 @@
 #define ELBOW_PIN 10
 #define SHOULDER_PIN 11
 
-#define REVERT 2
+#define REVERT 0
 #define STAY 1
-#define EXTEND 0
+#define EXTEND 2
 
 #define COLLISION_ANGLE 70
 
@@ -39,7 +39,7 @@ auto elbowIsSafe = []() { return shoulder.getAngle() > COLLISION_ANGLE; };
 //
 // `REVERT`: revert to min angle
 // `STAY`: stay at current position
-// `EXTEND`: rotate to max angle
+// `EXTEND`: rotate to max angle given the shoulder angle
 //
 void handleElbow(int mode) {
   if (mode == REVERT)
