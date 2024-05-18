@@ -20,9 +20,14 @@
 #define STAY 1
 #define ROTATE 0
 
+// TODO: make it so that the elbow joint can't collide with the body of the rover
+
+// TODO: make it so one finger controls the arm where the elbow stays level with the ground,
+// then the other finger controls elbow for if we still need to move elbow a diff. angle
+
 ServoJoint claw(CLAW_PIN, 20, 90);
-ServoJoint elbow(ELBOW_PIN, 20, 180);
-ServoJoint shoulder(SHOULDER_PIN, 20, 90);
+ServoJoint elbow(ELBOW_PIN, 90, 120);
+ServoJoint shoulder(SHOULDER_PIN, 0, 90);
 
 // ### Handle the mode of the servo
 //
@@ -121,6 +126,8 @@ void handleRover(int mode) {
     turnRight();
 }
 
+// base: 0-90
+// elbow: 90-180
 void setup() {
   Serial.begin(38400);
   Serial.println("version 0.7.0");
@@ -139,21 +146,22 @@ void setup() {
   elbow.attach();
   shoulder.attach();
 
-  claw.setAngle(20);
-  elbow.setAngle(20);
-  shoulder.setAngle(20);
+  claw.setAngle(0);
+  elbow.setAngle(0);
+  shoulder.setAngle(0);
 }
 
 auto moveArm = []() {
-  Serial.println("elbow flex");
-  handleServo(2, elbow);
-  Serial.println("shoulder flex");
-  handleServo(2, shoulder);
-  delay(2000);
-  Serial.println("elbow down");
-  handleServo(0, elbow);
   Serial.println("shoulder down");
   handleServo(0, shoulder);
+  Serial.println("elbow down");
+  handleServo(0, elbow);
+  delay(2000);
+
+  Serial.println("shoulder flex");
+  handleServo(2, shoulder);
+  Serial.println("elbow flex");
+  handleServo(2, elbow);
   delay(2000);
 };
 
@@ -161,11 +169,11 @@ auto moveArm = []() {
 // [claw mode] [elbow mode] [shoulder mode] [rover mode]
 
 void loop() {
-  if (Serial.available() >= 4) { // Ensure four bytes are available
-    handleServo(Serial.read(), claw);
-    handleServo(Serial.read(), elbow);
-    handleServo(Serial.read(), shoulder);
-    handleRover(Serial.read());
-  }
-  // moveArm();
+  // if (Serial.available() >= 4) { // Ensure four bytes are available
+  //   handleServo(Serial.read(), claw);
+  //   handleServo(Serial.read(), elbow);
+  //   handleServo(Serial.read(), shoulder);
+  //   handleRover(Serial.read());
+  // }
+  moveArm();
 }
