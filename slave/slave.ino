@@ -5,9 +5,9 @@
 
 // hardware requirements:
 
-// - a mega 2560
+// - arduino mega 2560
 // - 2 hc-05 bluetooth modules
-// - two drive motors
+// - four drive motors
 // - three servos
 
 #include "ServoJoint.h"
@@ -18,30 +18,63 @@
 
 #define REVERT 2
 #define STAY 1
-#define ROTATE 0
+#define EXTEND 0
 
-// TODO: make it so that the elbow joint can't collide with the body of the rover
+#define COLLISION_ANGLE 70
 
-// TODO: make it so one finger controls the arm where the elbow stays level with the ground,
-// then the other finger controls elbow for if we still need to move elbow a diff. angle
+// TODO: make it so one finger controls the arm where the elbow stays level with
+// the ground, then the other finger controls elbow for if we still need to move
+// elbow a diff. angle
 
-ServoJoint claw(CLAW_PIN, 20, 90);
-ServoJoint elbow(ELBOW_PIN, 90, 120);
+// claw: ?
+// elbow: 90-180
+// shoulder: 0-90
+ServoJoint claw(CLAW_PIN, 0, 50);
+ServoJoint elbow(ELBOW_PIN, 30, 90);
 ServoJoint shoulder(SHOULDER_PIN, 0, 90);
 
-// ### Handle the mode of the servo
+auto elbowIsSafe = []() { return shoulder.getAngle() > COLLISION_ANGLE; };
+
+// ### Handle elbow modes
 //
-// `0`: revert to 0
-// `1`: stay at current position
-// `2`: rotate to 180
+// `REVERT`: revert to min angle
+// `STAY`: stay at current position
+// `EXTEND`: rotate to max angle
 //
-void handleServo(int mode, ServoJoint &servo) {
+void handleElbow(int mode) {
   if (mode == REVERT)
-    servo.setAngle(0);
+    elbow.setAngle(90);
   else if (mode == STAY)
-    servo.setAngle(servo.getAngle());
-  else if (mode == ROTATE)
-    servo.setAngle(270);
+    elbow.setAngle(elbow.getAngle());
+  else if (mode == EXTEND)
+    elbow.setAngle(elbowIsSafe() ? 30 : 60);
+}
+
+// ### Handle shoulder modes
+//
+// `REVERT`: revert to min angle
+// `STAY`: stay at current position
+// `EXTEND`: rotate to max angle
+//
+void handleShoulder(int mode) {
+  if (mode == REVERT)
+    shoulder.setAngle(0);
+  else if (mode == STAY)
+    shoulder.setAngle(shoulder.getAngle());
+  else if (mode == EXTEND)
+    shoulder.setAngle(270);
+}
+
+// ### Handle claw modes
+//
+// `REVERT`: open claw
+// `EXTEND`: close claw
+//
+void handleClaw(int mode) {
+  if (mode == REVERT)
+    shoulder.setAngle(0);
+  else if (mode == EXTEND)
+    shoulder.setAngle(270);
 }
 
 // ### Handle the mode and direction of the rover
@@ -91,7 +124,7 @@ void handleRover(int mode) {
   };
 
   auto turnLeft = []() {
-    Serial.println("Left ");
+    Serial.println("Left");
     digitalWrite(13, LOW);
     digitalWrite(12, HIGH);
     digitalWrite(8, HIGH);
@@ -103,7 +136,7 @@ void handleRover(int mode) {
   };
 
   auto turnRight = []() {
-    Serial.println("Right ");
+    Serial.println("Right");
     digitalWrite(13, HIGH);
     digitalWrite(12, LOW);
     digitalWrite(8, LOW);
@@ -126,8 +159,6 @@ void handleRover(int mode) {
     turnRight();
 }
 
-// base: 0-90
-// elbow: 90-180
 void setup() {
   Serial.begin(38400);
   Serial.println("version 0.7.0");
@@ -153,27 +184,26 @@ void setup() {
 
 auto moveArm = []() {
   Serial.println("shoulder down");
-  handleServo(0, shoulder);
+  handleShoulder(REVERT);
   Serial.println("elbow down");
-  handleServo(0, elbow);
+  handleElbow(REVERT);
   delay(2000);
 
   Serial.println("shoulder flex");
-  handleServo(2, shoulder);
+  handleShoulder(EXTEND);
   Serial.println("elbow flex");
-  handleServo(2, elbow);
+  handleElbow(EXTEND);
   delay(2000);
 };
 
 // Receive a 4-byte message from the master for the arm modes and rover mode:
-// [claw mode] [elbow mode] [shoulder mode] [rover mode]
-
+// ### `[claw mode] [elbow mode] [shoulder mode] [rover mode]`
 void loop() {
-  // if (Serial.available() >= 4) { // Ensure four bytes are available
-  //   handleServo(Serial.read(), claw);
-  //   handleServo(Serial.read(), elbow);
-  //   handleServo(Serial.read(), shoulder);
-  //   handleRover(Serial.read());
-  // }
-  moveArm();
+  if (Serial.available() >= 4) { // Ensure four bytes are available
+    handleClaw(Serial.read());
+    handleElbow(Serial.read());
+    handleShoulder(Serial.read());
+    handleRover(Serial.read());
+  }
+  // moveArm();
 }
