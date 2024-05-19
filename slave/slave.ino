@@ -20,61 +20,98 @@
 #define STAY 1
 #define EXTEND 2
 
-#define COLLISION_ANGLE 70
+#define COLLISION_ANGLE 20
 
-// TODO: make it so one finger controls the arm where the elbow stays level with
-// the ground, then the other finger controls elbow for if we still need to move
-// elbow a diff. angle
+#define FRONT_LEFT 3
+#define FRONT_LEFT_2 4
 
-// claw: ?
+#define FRONT_RIGHT 7
+#define FRONT_RIGHT_2 8
+
+#define BACK_LEFT 5
+#define BACK_LEFT_2 6
+
+#define BACK_RIGHT 13
+#define BACK_RIGHT_2 12
+
+// claw: 0-70
 // elbow: 90-180
 // shoulder: 0-90
-ServoJoint claw(CLAW_PIN, 0, 50);
-ServoJoint elbow(ELBOW_PIN, 30, 90);
-ServoJoint shoulder(SHOULDER_PIN, 0, 90);
+ServoJoint claw(CLAW_PIN, 0, 70);
+ServoJoint elbow(ELBOW_PIN, 0, 90);
+ServoJoint shoulder(SHOULDER_PIN, 0, 50);
 
-auto elbowIsSafe = []() { return shoulder.getAngle() > COLLISION_ANGLE; };
+auto elbowIsSafe = []() -> bool { return shoulder.getAngle() > COLLISION_ANGLE; };
 
-// ### Handle elbow modes
-//
-// `REVERT`: revert to min angle
-// `STAY`: stay at current position
-// `EXTEND`: rotate to max angle given the shoulder angle
-//
+void wheelForward(int in1, int in2) {
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+}
+
+void wheelBackward(int in1, int in2) {
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);
+}
+
+void wheelStop(int in1, int in2) {
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+}
+
 void handleElbow(int mode) {
-  if (mode == REVERT)
-    elbow.setAngle(90);
-  else if (mode == STAY)
-    elbow.setAngle(elbow.getAngle());
-  else if (mode == EXTEND)
-    elbow.setAngle(elbowIsSafe() ? 30 : 60);
+  if (mode == 0) {
+    elbow.setAngle(270);
+  }
+  else if (mode == 2) {
+    elbow.setAngle(elbowIsSafe() ? 0 : 60);
+  } else {
+    return;
+  }
 }
 
-// ### Handle shoulder modes
-//
-// `REVERT`: revert to min angle
-// `STAY`: stay at current position
-// `EXTEND`: rotate to max angle
-//
+void handleServo(int mode, ServoJoint &servo) {
+  if (mode == 0) {
+    // Serial.println("REVERT");
+    servo.setAngle(servo.getAngle() + 1);
+    delay(20);
+  }
+  else if (mode == 2) {
+    // Serial.println("EXTEND");
+    servo.setAngle(servo.getAngle() - 1);
+    delay(20);
+  } else {
+    return;
+  }
+}
+
 void handleShoulder(int mode) {
-  if (mode == REVERT)
-    shoulder.setAngle(0);
-  else if (mode == STAY)
-    shoulder.setAngle(shoulder.getAngle());
-  else if (mode == EXTEND)
-    shoulder.setAngle(270);
+  if (mode == 0) {
+    shoulder.setAngle(shoulder.getAngle() + 1);
+    delay(20);
+  }
+  else if (mode == 2) {
+    shoulder.setAngle(shoulder.getAngle() - 1);
+    delay(20);
+  } else {
+    return;
+  }
 }
 
-// ### Handle claw modes
-//
-// `REVERT`: open claw
-// `EXTEND`: close claw
-//
+bool isClosed = false;
+
 void handleClaw(int mode) {
-  if (mode == REVERT)
-    shoulder.setAngle(0);
-  else if (mode == EXTEND)
-    shoulder.setAngle(270);
+  if (mode == 0) {
+    return;
+  }
+  else if (mode == 1) {
+    if (isClosed) {
+      claw.setAngle(0);
+      isClosed = false;
+    } else {
+      claw.setAngle(270);
+      isClosed = true;
+    }
+  }
 }
 
 // ### Handle the mode and direction of the rover
@@ -88,80 +125,64 @@ void handleClaw(int mode) {
 //
 void handleRover(int mode) {
   auto stop = []() {
-    Serial.println("Stop");
-    digitalWrite(13, LOW);
-    digitalWrite(12, LOW);
-    digitalWrite(8, LOW);
-    digitalWrite(7, LOW);
-    digitalWrite(6, LOW);
-    digitalWrite(5, LOW);
-    digitalWrite(3, LOW);
-    digitalWrite(4, LOW);
+    // Serial.println("Stop");
+
+    wheelStop(FRONT_LEFT, FRONT_LEFT_2);
+    wheelStop(FRONT_RIGHT, FRONT_RIGHT_2);
+    wheelStop(BACK_LEFT, BACK_LEFT_2);
+    wheelStop(BACK_RIGHT, BACK_RIGHT_2);
   };
 
   auto forward = []() {
-    Serial.println("Forward");
-    digitalWrite(12, HIGH);
-    digitalWrite(13, LOW);
-    digitalWrite(8, HIGH);
-    digitalWrite(7, LOW);
-    digitalWrite(6, HIGH);
-    digitalWrite(5, LOW);
-    digitalWrite(4, HIGH);
-    digitalWrite(3, LOW);
+    // Serial.println("Forward");
+
+    wheelForward(FRONT_LEFT, FRONT_LEFT_2);
+    wheelForward(FRONT_RIGHT, FRONT_RIGHT_2);
+    wheelForward(BACK_LEFT, BACK_LEFT_2);
+    wheelForward(BACK_RIGHT, BACK_RIGHT_2);
   };
 
   auto backward = []() {
-    Serial.println("Backward");
-    digitalWrite(12, LOW);
-    digitalWrite(13, HIGH);
-    digitalWrite(8, LOW);
-    digitalWrite(7, HIGH);
-    digitalWrite(6, LOW);
-    digitalWrite(5, HIGH);
-    digitalWrite(4, LOW);
-    digitalWrite(3, HIGH);
+    // Serial.println("Backward");
+
+    wheelBackward(FRONT_LEFT, FRONT_LEFT_2);
+    wheelBackward(FRONT_RIGHT, FRONT_RIGHT_2);
+    wheelBackward(BACK_LEFT, BACK_LEFT_2);
+    wheelBackward(BACK_RIGHT, BACK_RIGHT_2);
   };
 
   auto turnLeft = []() {
-    Serial.println("Left");
-    digitalWrite(13, LOW);
-    digitalWrite(12, HIGH);
-    digitalWrite(8, HIGH);
-    digitalWrite(7, LOW);
-    digitalWrite(6, LOW);
-    digitalWrite(5, HIGH);
-    digitalWrite(3, HIGH);
-    digitalWrite(4, LOW);
+    // Serial.println("Left");
+
+    wheelBackward(FRONT_LEFT, FRONT_LEFT_2);
+    wheelBackward(BACK_LEFT, BACK_LEFT_2);
+    wheelForward(FRONT_RIGHT, FRONT_RIGHT_2);
+    wheelForward(BACK_RIGHT, BACK_RIGHT_2);
   };
 
   auto turnRight = []() {
-    Serial.println("Right");
-    digitalWrite(13, HIGH);
-    digitalWrite(12, LOW);
-    digitalWrite(8, LOW);
-    digitalWrite(7, HIGH);
-    digitalWrite(6, HIGH);
-    digitalWrite(5, LOW);
-    digitalWrite(3, LOW);
-    digitalWrite(4, HIGH);
+    // Serial.println("Right");
+
+    wheelForward(FRONT_LEFT, FRONT_LEFT_2);
+    wheelForward(BACK_LEFT, BACK_LEFT_2);
+    wheelBackward(FRONT_RIGHT, FRONT_RIGHT_2);
+    wheelBackward(BACK_RIGHT, BACK_RIGHT_2);
   };
 
   if (mode == 0)
     stop();
   else if (mode == 1)
-    forward();
-  else if (mode == 2)
     backward();
+  else if (mode == 2)
+    forward();
   else if (mode == 3)
-    turnLeft();
-  else if (mode == 4)
     turnRight();
+  else if (mode == 4)
+    turnLeft();
 }
 
 void setup() {
   Serial.begin(38400);
-  Serial.println("version 0.7.0");
 
   // motor pins
   pinMode(13, OUTPUT);
@@ -178,32 +199,19 @@ void setup() {
   shoulder.attach();
 
   claw.setAngle(0);
-  elbow.setAngle(0);
-  shoulder.setAngle(0);
+  elbow.setAngle(90);
+  shoulder.setAngle(270);
 }
-
-auto moveArm = []() {
-  Serial.println("shoulder down");
-  handleShoulder(REVERT);
-  Serial.println("elbow down");
-  handleElbow(REVERT);
-  delay(2000);
-
-  Serial.println("shoulder flex");
-  handleShoulder(EXTEND);
-  Serial.println("elbow flex");
-  handleElbow(EXTEND);
-  delay(2000);
-};
 
 // Receive a 4-byte message from the master for the arm modes and rover mode:
 // ### `[claw mode] [elbow mode] [shoulder mode] [rover mode]`
 void loop() {
   if (Serial.available() >= 4) { // Ensure four bytes are available
+    // handleClaw(Serial.read());
     handleClaw(Serial.read());
-    handleElbow(Serial.read());
     handleShoulder(Serial.read());
+    handleElbow(Serial.read());
+    // handleServo(Serial.read(), elbow);
     handleRover(Serial.read());
   }
-  // moveArm();
 }
