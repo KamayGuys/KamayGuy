@@ -11,6 +11,7 @@
 // - three servos
 
 #include "ServoJoint.h"
+#include <FastLED.h>
 
 #define CLAW_PIN 9
 #define ELBOW_PIN 10
@@ -34,12 +35,16 @@
 #define BACK_RIGHT 13
 #define BACK_RIGHT_2 12
 
+#define LED_PIN 2
+
+#define NUM_LEDS 60
+
 // claw: 0-70
 // elbow: 90-180
 // shoulder: 0-90
 ServoJoint claw(CLAW_PIN, 0, 70);
 ServoJoint elbow(ELBOW_PIN, 0, 90);
-ServoJoint shoulder(SHOULDER_PIN, 0, 50);
+ServoJoint shoulder(SHOULDER_PIN, 0, 60);
 
 auto elbowIsSafe = []() -> bool { return shoulder.getAngle() > COLLISION_ANGLE; };
 
@@ -169,10 +174,20 @@ void handleRover(int mode) {
     wheelBackward(BACK_RIGHT, BACK_RIGHT_2);
   };
 
-  if (mode == 0)
+  if (mode == 0) {
+    for(int i = 0; i < NUM_LEDS; i++) {
+      leds[i] = CRGB::Blue;
+    }
+    FastLED.show();
     stop();
-  else if (mode == 1)
+  }
+  else if (mode == 1) {
+    for(int i = 0; i < NUM_LEDS; i++) {
+      leds[i] = CRGB::Red;
+    }
+    FastLED.show();
     backward();
+  }
   else if (mode == 2)
     forward();
   else if (mode == 3)
@@ -180,6 +195,9 @@ void handleRover(int mode) {
   else if (mode == 4)
     turnLeft();
 }
+
+CRGB leds[NUM_LEDS] = {CRGB::Blue};
+// CRGB leds[NUM_LEDS];
 
 void setup() {
   Serial.begin(38400);
@@ -201,13 +219,16 @@ void setup() {
   claw.setAngle(0);
   elbow.setAngle(90);
   shoulder.setAngle(270);
+
+  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
+  // FastLED.setBrightness(255);
+  FastLED.show();
 }
 
 // Receive a 4-byte message from the master for the arm modes and rover mode:
 // ### `[claw mode] [elbow mode] [shoulder mode] [rover mode]`
 void loop() {
   if (Serial.available() >= 4) { // Ensure four bytes are available
-    // handleClaw(Serial.read());
     handleClaw(Serial.read());
     handleShoulder(Serial.read());
     handleElbow(Serial.read());
